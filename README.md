@@ -51,3 +51,16 @@
 ### For Celery and Redis
 - Spin up a redis instance
 - Run the celery worker using `celery -A celery_worker.celery_app worker --loglevel=info`
+- By default, celery stores the result for a day which can be changed using below config.
+  '''py
+  from celery import Celery
+
+  celery_app = Celery(
+      'tasks',
+      broker='redis://localhost:6379/0',
+      backend='redis://localhost:6379/0'
+  )
+
+  # Set results to expire after 1 hour
+  celery_app.conf.result_expires = 3600
+  '''
