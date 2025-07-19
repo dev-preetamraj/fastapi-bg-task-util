@@ -1,14 +1,19 @@
 import time
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-
 from contextlib import asynccontextmanager
 
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+
 from sqlmodel import Session
+
+from celery_worker import process_long_task_with_celery
+from celery.result import AsyncResult
 
 from db import SessionDep, create_db_and_tables
 from models import BackgroundTask, TaskStatus
+
+from celery_worker import celery_app
 
 
 @asynccontextmanager
@@ -31,13 +36,12 @@ app.add_middleware(
 
 
 @app.get("/status/{task_id}")
-async def get_task_status(task_id: int, session: SessionDep) -> BackgroundTask:
-    bg_task = session.get(BackgroundTask, task_id)
+async def get_task_status(task_id: str):
+    task_result = AsyncResult(task_id, app=celery_app)
+    status = task_result.status
+    result = task_result.result if task_result.ready() else None
 
-    if not bg_task:
-        raise HTTPException(status_code=404, detail="No background task found")
-
-    return bg_task
+    return {"status": status, "result": result}
 
 
 def process_long_task(task_id: int, session: Session) -> None:
@@ -58,15 +62,11 @@ def process_long_task(task_id: int, session: Session) -> None:
 
 
 @app.post("/bg-task")
-async def bg_task_demo(background_tasks: BackgroundTasks, session: SessionDep):
-    bg_task = BackgroundTask()
-    session.add(bg_task)
-    session.commit()
-    session.refresh(bg_task)
+async def bg_task_demo():
 
-    background_tasks.add_task(process_long_task, bg_task.id, session)
+    task = process_long_task_with_celery.delay()
 
     return JSONResponse(
-        {"task_id": bg_task.id, "message": "Task running in background"},
+        {"task_id": task.id, "message": "Task running in background"},
         status_code=202,
     )

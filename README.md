@@ -47,3 +47,7 @@
      }, 3000); // Poll every 3 seconds
    }
    ```
+
+### For Celery and Redis
+- Spin up a redis instance
+- Run the celery worker using `celery -A celery_worker.celery_app worker --loglevel=info`
