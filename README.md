@@ -52,7 +52,7 @@
 - Spin up a redis instance
 - Run the celery worker using `celery -A celery_worker.celery_app worker --loglevel=info`
 - By default, celery stores the result for a day which can be changed using below config.
-  '''py
+  ```py
   from celery import Celery
 
   celery_app = Celery(
@@ -63,4 +63,4 @@
 
   # Set results to expire after 1 hour
   celery_app.conf.result_expires = 3600
-  '''
+  ```
