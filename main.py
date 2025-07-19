@@ -1,19 +1,15 @@
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Request
+from celery.result import AsyncResult
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
 from sqlmodel import Session
 
-from celery_worker import process_long_task_with_celery
-from celery.result import AsyncResult
-
-from db import SessionDep, create_db_and_tables
+from celery_worker import celery_app, process_long_task_with_celery
+from db import create_db_and_tables
 from models import BackgroundTask, TaskStatus
-
-from celery_worker import celery_app
 
 
 @asynccontextmanager
@@ -63,7 +59,6 @@ def process_long_task(task_id: int, session: Session) -> None:
 
 @app.post("/bg-task")
 async def bg_task_demo():
-
     task = process_long_task_with_celery.delay()
 
     return JSONResponse(
